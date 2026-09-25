@@ -73,6 +73,10 @@ public:
     boundaries_initialized_ = initialized;
   }
 
+  bool active_known() const noexcept {
+    return active_known_;
+  }
+
   ActiveBox active_box() const {
 
     if (active_known_) {return active_;}
@@ -130,11 +134,19 @@ inline void apply_stencil(const Grid& old_grid, Grid& new_grid) {
     return;
   }
 
+  const bool source_reinitialized = !old_grid.active_known();
+
   const ActiveBox old_box = old_grid.active_box();
   const ActiveBox next_box = expand_box(old_box, rows, cols);
 
   const double* __restrict__ input = old_grid.data();
   double* __restrict__ output = new_grid.data();
+
+  if (source_reinitialized) {
+    std::fill(output, output + rows * cols, 0.0);
+    new_grid.set_active_box({});
+    new_grid.set_boundaries_initialized(false);
+  }
 
   if (!new_grid.boundaries_initialized()) {
     std::memcpy(output, input, cols * sizeof(double));
